@@ -19,13 +19,16 @@ window.onload = function() {
                                 console.log('Video encontrado!');
 
                                 // Ajustar el tamaño del body para incluir video y subtítulos
+                                innerIframeDocument.body.style.boxSizing = 'border-box'; // Usar la propiedad box-sizing
                                 innerIframeDocument.body.style.height = 'auto';
-                                innerIframeDocument.body.style.overflow = 'visible'; // Para evitar el scroll dentro del iframe
+                                innerIframeDocument.body.style.padding = '20px'; // Asegura un espacio adecuado
+                                innerIframeDocument.body.style.overflow = 'visible'; // Evitar el scroll dentro del iframe
 
                                 // Crear el contenedor para mostrar el contenido del VTT debajo del video
                                 const randomTextContainer = document.createElement('div');
                                 randomTextContainer.id = 'random-text';
                                 randomTextContainer.style.marginTop = '20px';
+                                randomTextContainer.style.paddingBottom = '20px';
                                 randomTextContainer.style.fontSize = '36px';
                                 randomTextContainer.style.textAlign = 'center';
                                 randomTextContainer.style.whiteSpace = 'pre-wrap'; // Para preservar los saltos de línea
