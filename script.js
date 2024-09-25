@@ -18,39 +18,33 @@ window.onload = function() {
                             if (videoElement) {
                                 console.log('Video encontrado!');
 
-                                // Ajustar el tamaño del body para incluir video y subtítulos
-                                innerIframeDocument.body.style.boxSizing = 'border-box'; // Usar la propiedad box-sizing
+                                innerIframeDocument.body.style.boxSizing = 'border-box';
                                 innerIframeDocument.body.style.height = 'auto';
-                                innerIframeDocument.body.style.padding = '20px'; // Asegura un espacio adecuado
-                                innerIframeDocument.body.style.overflow = 'visible'; // Evitar el scroll dentro del iframe
+                                innerIframeDocument.body.style.padding = '20px';
+                                innerIframeDocument.body.style.overflow = 'visible';
 
-                                // Crear el contenedor para mostrar el contenido del VTT debajo del video
                                 const randomTextContainer = document.createElement('div');
                                 randomTextContainer.id = 'random-text';
                                 randomTextContainer.style.marginTop = '20px';
                                 randomTextContainer.style.paddingBottom = '20px';
                                 randomTextContainer.style.fontSize = '36px';
                                 randomTextContainer.style.textAlign = 'center';
-                                randomTextContainer.style.whiteSpace = 'pre-wrap'; // Para preservar los saltos de línea
-                                randomTextContainer.textContent = 'Cargando subtítulos...'; // Mensaje inicial mientras se carga el VTT
+                                randomTextContainer.style.whiteSpace = 'pre-wrap';
+                                randomTextContainer.textContent = 'Cargando subtítulos...';
                                 innerIframeDocument.body.appendChild(randomTextContainer);
 
-                                // Ajustar el contenedor del video para que el video y el texto se alineen correctamente
                                 const videoContainer = videoElement.parentElement;
                                 videoContainer.style.display = 'flex';
-                                videoContainer.style.flexDirection = 'column'; // Alinear el video y el texto verticalmente
+                                videoContainer.style.flexDirection = 'column';
                                 videoContainer.style.alignItems = 'center';
-                                videoContainer.style.width = '100%'; // Ajustar el contenedor al 100% del ancho
+                                videoContainer.style.width = '100%';
 
-                                // Ajustar el tamaño del iframe externo según el contenido del iframe interno
                                 function adjustIframeSize() {
-                                    outerIframe.style.height = innerIframeDocument.body.scrollHeight + 'px'; // Ajustar altura del iframe externo
+                                    outerIframe.style.height = innerIframeDocument.body.scrollHeight + 'px';
                                 }
 
-                                // Ajustar el tamaño del iframe después de que se carguen los subtítulos
                                 adjustIframeSize();
 
-                                // Obtiene todas las etiquetas <track> dentro del video
                                 const trackElements = videoElement.getElementsByTagName('track');
 
                                 if (trackElements.length > 0) {
@@ -61,56 +55,53 @@ window.onload = function() {
                                         if (trackSrc) {
                                             console.log(`Track encontrado: ${trackSrc}`);
 
-                                            // Realiza una solicitud para obtener el archivo .vtt
                                             fetch(trackSrc)
                                                 .then(response => response.text())
                                                 .then(vttData => {
-                                                    // Validar si el archivo vttData tiene contenido válido
                                                     if (!vttData || vttData.trim() === "") {
                                                         throw new Error("El archivo VTT está vacío o no tiene contenido válido.");
                                                     }
 
-                                                    // Procesar el archivo VTT para extraer los frames de tiempo y subtítulos
                                                     const captions = processVTT(vttData);
 
-                                                    // Verificar si se procesaron correctamente los subtítulos
                                                     if (!captions || captions.length === 0) {
                                                         throw new Error("No se encontraron subtítulos válidos en el archivo VTT.");
                                                     }
 
-                                                    // Limpiar el contenedor antes de añadir subtítulos
                                                     randomTextContainer.innerHTML = '';
 
-                                                    // Crear un elemento <p> para cada subtítulo y agregarlo al contenedor
+                                                    // Crear un enlace <a> para cada subtítulo
                                                     captions.forEach((caption, index) => {
-                                                        const captionElement = document.createElement('p');
+                                                        const captionElement = document.createElement('a');
                                                         captionElement.id = `caption-${index}`;
+                                                        captionElement.href = '#';
                                                         captionElement.textContent = caption.text.trim();
-                                                        captionElement.style.transition = 'color 0.3s, background-color 0.3s'; // Añadir transición suave
+                                                        captionElement.style.transition = 'color 0.3s, background-color 0.3s';
+                                                        captionElement.style.display = 'block'; // Cada línea en un bloque
+                                                        captionElement.style.cursor = 'pointer'; // Mostrar puntero de clic
+                                                        captionElement.onclick = function() {
+                                                            videoElement.currentTime = caption.start; // Saltar al tiempo de inicio del frame
+                                                            videoElement.play(); // Opcional: reproducir video
+                                                        };
                                                         randomTextContainer.appendChild(captionElement);
                                                     });
 
-                                                    // Monitorear el tiempo de reproducción del video
                                                     videoElement.addEventListener('timeupdate', function() {
                                                         const currentTime = videoElement.currentTime;
 
-                                                        // Verificar si el tiempo actual está dentro del rango de algún frame
                                                         captions.forEach((caption, index) => {
                                                             const captionElement = innerIframeDocument.getElementById(`caption-${index}`);
 
                                                             if (currentTime >= caption.start && currentTime <= caption.end) {
-                                                                // Resaltar el subtítulo actual
                                                                 captionElement.style.color = 'white';
                                                                 captionElement.style.backgroundColor = 'blue';
                                                             } else {
-                                                                // Restablecer el estilo de los subtítulos que no están activos
                                                                 captionElement.style.color = 'black';
                                                                 captionElement.style.backgroundColor = 'transparent';
                                                             }
                                                         });
                                                     });
 
-                                                    // Ajustar el tamaño del iframe después de cargar el contenido del VTT
                                                     adjustIframeSize();
                                                 })
                                                 .catch(error => {
@@ -161,29 +152,25 @@ function processVTT(vttData) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
 
-        // Omitir el título "WEBVTT"
         if (line === 'WEBVTT') {
             continue;
         }
 
-        // Si es una línea con tiempos "00:01.000 --> 00:03.500"
         if (line.includes('-->')) {
             const times = line.split(' --> ');
             if (!times[0] || !times[1]) {
                 console.error(`Línea de tiempo malformada: ${line}`);
-                continue; // Saltar esta línea si está mal formateada
+                continue;
             }
             currentCaption = {
-                start: parseTime(times[0].trim()), // Convertir tiempo a segundos
-                end: parseTime(times[1].trim()),   // Convertir tiempo a segundos
+                start: parseTime(times[0].trim()),
+                end: parseTime(times[1].trim()),
                 text: ''
             };
         } else if (line.length > 0) {
-            // Acumular el texto del subtítulo
             currentCaption.text += line + ' ';
         }
 
-        // Cuando termina el subtítulo, agregarlo a la lista
         if ((line.length === 0 || i === lines.length - 1) && currentCaption.text) {
             captions.push(currentCaption);
             currentCaption = {};
@@ -197,7 +184,6 @@ function processVTT(vttData) {
 function parseTime(timeString) {
     const timeParts = timeString.split(":");
 
-    // Manejar tiempos en formato MM:SS.milliseconds (sin horas)
     if (timeParts.length === 2) {
         const minutes = parseInt(timeParts[0], 10) * 60;
         const secondsParts = timeParts[1].split('.');
