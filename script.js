@@ -75,18 +75,34 @@ window.onload = function() {
                               throw new Error("No se encontraron subtítulos válidos en el archivo VTT.");
                             }
   
-                            // Mostrar el contenido formateado del VTT en el contenedor
-                            randomTextContainer.textContent = captions.map(c => c.text).join('\n\n');
+                            // Limpiar el contenedor antes de añadir subtítulos
+                            randomTextContainer.innerHTML = '';
+  
+                            // Crear un elemento <p> para cada subtítulo y agregarlo al contenedor
+                            captions.forEach((caption, index) => {
+                              const captionElement = document.createElement('p');
+                              captionElement.id = `caption-${index}`;
+                              captionElement.textContent = caption.text.trim();
+                              captionElement.style.transition = 'color 0.3s, background-color 0.3s'; // Añadir transición suave
+                              randomTextContainer.appendChild(captionElement);
+                            });
   
                             // Monitorear el tiempo de reproducción del video
                             videoElement.addEventListener('timeupdate', function() {
                               const currentTime = videoElement.currentTime;
-                              console.log(`Tiempo actual del video: ${currentTime}`);
   
                               // Verificar si el tiempo actual está dentro del rango de algún frame
-                              captions.forEach(caption => {
+                              captions.forEach((caption, index) => {
+                                const captionElement = innerIframeDocument.getElementById(`caption-${index}`);
+  
                                 if (currentTime >= caption.start && currentTime <= caption.end) {
-                                  console.log(`Identificado el texto: "${caption.text}" dentro del rango ${caption.start} --> ${caption.end}`);
+                                  // Resaltar el subtítulo actual
+                                  captionElement.style.color = 'white';
+                                  captionElement.style.backgroundColor = 'blue';
+                                } else {
+                                  // Restablecer el estilo de los subtítulos que no están activos
+                                  captionElement.style.color = 'black';
+                                  captionElement.style.backgroundColor = 'transparent';
                                 }
                               });
                             });
