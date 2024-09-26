@@ -1,4 +1,4 @@
-window.onload = function() {
+window.onload = function () {
     const outerIframe = document.querySelector('iframe');
 
     if (outerIframe) {
@@ -12,7 +12,6 @@ window.onload = function() {
                     try {
                         const innerIframeDocument = innerIframe.contentDocument || innerIframe.contentWindow.document;
 
-                        // Asegurarse de que el iframe interno está cargado
                         if (innerIframeDocument) {
                             const h5pContainer = innerIframeDocument.querySelector('.h5p-content');
                             if (h5pContainer) {
@@ -28,7 +27,8 @@ window.onload = function() {
                                 // Crear contenedor principal con grid de Bootstrap
                                 const container = innerIframeDocument.createElement('div');
                                 container.classList.add('container-fluid');
-                                innerIframeDocument.body.innerHTML = ''; // Limpiar el body antes de insertar los elementos
+                                container.style.maxHeight = '520px'; // Limitar la altura del grid a 620px
+                                container.style.overflow = 'hidden'; // Asegurar que el contenido no sobrepase los límites
                                 innerIframeDocument.body.appendChild(container);
 
                                 // Crear la fila (row)
@@ -38,14 +38,16 @@ window.onload = function() {
 
                                 // Columna para el contenido H5P (col-8)
                                 const colH5P = innerIframeDocument.createElement('div');
-                                colH5P.classList.add('col-12', 'col-md-8');
+                                colH5P.classList.add('col-12', 'col-sm-8');
                                 colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
                                 row.appendChild(colH5P);
 
                                 // Columna para el texto (col-4)
                                 const colText = innerIframeDocument.createElement('div');
-                                colText.classList.add('col-12', 'col-md-4');
+                                colText.classList.add('col-12', 'col-sm-4');
                                 colText.id = 'random-text';
+                                colText.style.overflowY = 'auto'; // Agregar scroll vertical
+                                colText.style.maxHeight = '100%'; // Asegurar que no sobrepase el tamaño del grid
                                 row.appendChild(colText);
 
                                 // Ajustar el tamaño del iframe externo según el contenido del iframe interno
@@ -90,7 +92,10 @@ window.onload = function() {
                                                         captionElement.style.transition = 'color 0.3s, background-color 0.3s';
                                                         captionElement.style.display = 'block'; // Cada línea en un bloque
                                                         captionElement.style.cursor = 'pointer'; // Mostrar puntero de clic
-                                                        captionElement.onclick = function() {
+                                                        captionElement.style.fontSize = '20px'; // Tamaño de la fuente grande
+                                                        captionElement.style.textDecoration = 'none'; // Eliminar apariencia de enlace
+                                                        captionElement.style.color = 'black';
+                                                        captionElement.onclick = function () {
                                                             const videoElement = innerIframeDocument.querySelector('video');
                                                             videoElement.currentTime = caption.start; // Saltar al tiempo de inicio del frame
                                                             videoElement.play(); // Reproducir el video
@@ -98,17 +103,17 @@ window.onload = function() {
                                                         colText.appendChild(captionElement);
                                                     });
 
-                                                    innerIframeDocument.querySelector('video').addEventListener('timeupdate', function() {
+                                                    innerIframeDocument.querySelector('video').addEventListener('timeupdate', function () {
                                                         const currentTime = this.currentTime;
 
                                                         captions.forEach((caption, index) => {
                                                             const captionElement = innerIframeDocument.getElementById(`caption-${index}`);
 
                                                             if (currentTime >= caption.start && currentTime <= caption.end) {
-                                                                captionElement.style.color = 'white';
-                                                                captionElement.style.backgroundColor = 'blue';
+                                                                captionElement.style.fontWeight = 'bold'; 
+                                                                captionElement.style.backgroundColor = '#adc1d2';
                                                             } else {
-                                                                captionElement.style.color = 'black';
+                                                                captionElement.style.fontWeight = 'normal';
                                                                 captionElement.style.backgroundColor = 'transparent';
                                                             }
                                                         });
@@ -148,7 +153,7 @@ window.onload = function() {
                 console.error('No se puede acceder al contenido del primer iframe.');
             }
         } catch (error) {
-            console.error('Error accediendo al contenido del primer iframe:', error.message);
+            console.error('Error accediendo al contenido del primer iframe.', error.message);
         }
     } else {
         console.error('No se encontró el primer iframe.');
