@@ -27,7 +27,7 @@ window.onload = function () {
                                 // Crear contenedor principal con grid de Bootstrap
                                 const container = innerIframeDocument.createElement('div');
                                 container.classList.add('container-fluid');
-                                container.style.maxHeight = '620px'; // Limitar la altura del grid
+                                container.style.maxHeight = '520px'; // Limitar la altura del grid
                                 container.style.overflow = 'hidden'; // Asegurar que el contenido no sobrepase los límites
                                 innerIframeDocument.body.appendChild(container);
 
@@ -39,8 +39,8 @@ window.onload = function () {
                                 // Columna para el contenido H5P (col-8)
                                 const colH5P = innerIframeDocument.createElement('div');
                                 colH5P.classList.add('col-12', 'col-sm-8');
-                                colH5P.style.maxHeight = '520px'; // Limitar altura del video a 520px
-                                colH5P.style.overflow = 'hidden'; // Asegurarse que el video no se desborde
+                                colH5P.style.maxHeight = '520px'; // Limitar la altura del video
+                                colH5P.style.overflow = 'hidden'; // Evitar que crezca más
                                 colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
                                 row.appendChild(colH5P);
 
@@ -48,16 +48,24 @@ window.onload = function () {
                                 const colText = innerIframeDocument.createElement('div');
                                 colText.classList.add('col-12', 'col-sm-4');
                                 colText.id = 'random-text';
-                                colText.style.overflowY = 'auto'; // Agregar scroll vertical para subtítulos largos
-                                colText.style.maxHeight = '520px'; // Limitar la altura del contenedor de subtítulos
+                                colText.style.overflowY = 'auto'; // Agregar scroll vertical
+                                colText.style.maxHeight = '520px'; // Limitar el tamaño del contenedor de subtítulos
                                 row.appendChild(colText);
 
-                                // Ajustar el tamaño del iframe externo según el contenido del iframe interno
-                                function adjustIframeSize() {
-                                    outerIframe.style.height = innerIframeDocument.body.scrollHeight + 'px';
+                                let isUserInteracting = false;
+                                let inactivityTimeout;
+
+                                function resetInactivityTimer() {
+                                    isUserInteracting = true;
+                                    clearTimeout(inactivityTimeout);
+                                    inactivityTimeout = setTimeout(() => {
+                                        isUserInteracting = false;
+                                    }, 3500); // 3.5 segundos de inactividad
                                 }
 
-                                adjustIframeSize();
+                                // Escuchar eventos de interacción del usuario (scroll y mousemove)
+                                colText.addEventListener('scroll', resetInactivityTimer);
+                                colText.addEventListener('mousemove', resetInactivityTimer);
 
                                 // Añadir los subtítulos en col-4
                                 const trackElements = innerIframeDocument.querySelectorAll('track');
@@ -105,6 +113,7 @@ window.onload = function () {
                                                         colText.appendChild(captionElement);
                                                     });
 
+                                                    // Actualizar el scroll automáticamente según el subtítulo resaltado
                                                     innerIframeDocument.querySelector('video').addEventListener('timeupdate', function () {
                                                         const currentTime = this.currentTime;
 
@@ -112,32 +121,44 @@ window.onload = function () {
                                                             const captionElement = innerIframeDocument.getElementById(`caption-${index}`);
 
                                                             if (currentTime >= caption.start && currentTime <= caption.end) {
-                                                                captionElement.style.fontWeight = 'bold';
-                                                                captionElement.style.backgroundColor = '#adc1d2';
+                                                                captionElement.style.fontWeight = 'bold'; 
+                                                                captionElement.style.backgroundColor = '#a9c1c7';
+                                                                
+                                                                // Si no hay interacción del usuario, centrar el subtítulo resaltado
+                                                                if (!isUserInteracting) {
+                                                                    const scrollTop = colText.scrollTop;
+                                                                    const containerHeight = colText.clientHeight;
+                                                                    const elementOffset = captionElement.offsetTop;
+                                                                    const elementHeight = captionElement.offsetHeight;
+                                                                    
+                                                                    // Calcular la nueva posición del scroll
+                                                                    const scrollTo = elementOffset - (containerHeight / 2) + (elementHeight / 2);
+                                                                    
+                                                                    colText.scrollTo({
+                                                                        top: scrollTo,
+                                                                        behavior: 'smooth'
+                                                                    });
+                                                                }
+
                                                             } else {
                                                                 captionElement.style.fontWeight = 'normal';
                                                                 captionElement.style.backgroundColor = 'transparent';
                                                             }
                                                         });
                                                     });
-
-                                                    adjustIframeSize();
                                                 })
                                                 .catch(error => {
                                                     console.error('Error al procesar el archivo .vtt:', error.message);
                                                     colText.textContent = 'Error al cargar los subtítulos.';
-                                                    adjustIframeSize();
                                                 });
                                         } else {
                                             console.error('La etiqueta <track> no tiene un atributo src.');
                                             colText.textContent = 'No se encontró ninguna pista de subtítulos.';
-                                            adjustIframeSize();
                                         }
                                     });
                                 } else {
                                     console.error('No se encontró ninguna etiqueta de track dentro del contenido H5P.');
                                     colText.textContent = 'No se encontró ninguna pista de subtítulos.';
-                                    adjustIframeSize();
                                 }
                             } else {
                                 console.error('No se encontró ningún contenido H5P dentro del segundo iframe.');
