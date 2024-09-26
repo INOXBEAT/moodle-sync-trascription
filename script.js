@@ -27,7 +27,7 @@ window.onload = function () {
                                 // Crear contenedor principal con grid de Bootstrap
                                 const container = innerIframeDocument.createElement('div');
                                 container.classList.add('container-fluid');
-                                container.style.maxHeight = '520px'; // Limitar la altura del grid a 620px
+                                container.style.maxHeight = '620px'; // Limitar la altura del grid
                                 container.style.overflow = 'hidden'; // Asegurar que el contenido no sobrepase los límites
                                 innerIframeDocument.body.appendChild(container);
 
@@ -39,6 +39,8 @@ window.onload = function () {
                                 // Columna para el contenido H5P (col-8)
                                 const colH5P = innerIframeDocument.createElement('div');
                                 colH5P.classList.add('col-12', 'col-sm-8');
+                                colH5P.style.maxHeight = '520px'; // Limitar altura del video a 520px
+                                colH5P.style.overflow = 'hidden'; // Asegurarse que el video no se desborde
                                 colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
                                 row.appendChild(colH5P);
 
@@ -46,8 +48,8 @@ window.onload = function () {
                                 const colText = innerIframeDocument.createElement('div');
                                 colText.classList.add('col-12', 'col-sm-4');
                                 colText.id = 'random-text';
-                                colText.style.overflowY = 'auto'; // Agregar scroll vertical
-                                colText.style.maxHeight = '100%'; // Asegurar que no sobrepase el tamaño del grid
+                                colText.style.overflowY = 'auto'; // Agregar scroll vertical para subtítulos largos
+                                colText.style.maxHeight = '520px'; // Limitar la altura del contenedor de subtítulos
                                 row.appendChild(colText);
 
                                 // Ajustar el tamaño del iframe externo según el contenido del iframe interno
@@ -110,7 +112,7 @@ window.onload = function () {
                                                             const captionElement = innerIframeDocument.getElementById(`caption-${index}`);
 
                                                             if (currentTime >= caption.start && currentTime <= caption.end) {
-                                                                captionElement.style.fontWeight = 'bold'; 
+                                                                captionElement.style.fontWeight = 'bold';
                                                                 captionElement.style.backgroundColor = '#adc1d2';
                                                             } else {
                                                                 captionElement.style.fontWeight = 'normal';
@@ -144,7 +146,7 @@ window.onload = function () {
                             console.error('No se puede acceder al contenido del segundo iframe.');
                         }
                     } catch (error) {
-                        console.error('Error accediendo al contenido del segundo iframe:', error.message);
+                        console.error('Error accediendo al contenido del segundo iframe.', error.message);
                     }
                 } else {
                     console.error('No se encontró el segundo iframe dentro del primer iframe.');
