@@ -1,4 +1,5 @@
-# H5P Video Interaction Enhancer
+# H5P moodle-sync-trascription
+
 
 Este proyecto tiene como objetivo mejorar la interactividad y accesibilidad de los contenidos de video H5P en entornos iframe. Añade transcripciones sincronizadas, permite saltar a puntos específicos del video desde los subtítulos y adapta el diseño a dispositivos móviles utilizando Bootstrap 5.
 
