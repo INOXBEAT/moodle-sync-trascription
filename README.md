@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # H5P moodle-sync-trascription
 
 
