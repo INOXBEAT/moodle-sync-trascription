@@ -1,226 +1,182 @@
 window.onload = function () {
-    const outerIframe = document.querySelector('iframe');
+    const h5pContent = document.querySelector('.h5p-iframe-wrapper iframe'); // Identifica el iframe del contenido H5P
 
-    if (outerIframe) {
+    if (h5pContent) {
         try {
-            const outerIframeDocument = outerIframe.contentDocument || outerIframe.contentWindow.document;
+            const h5pDocument = h5pContent.contentDocument || h5pContent.contentWindow.document;
 
-            if (outerIframeDocument) {
-                const innerIframe = outerIframeDocument.querySelector('iframe');
+            if (h5pDocument) {
+                const h5pContainer = h5pDocument.querySelector('.h5p-content'); // Busca el contenido H5P
+                if (h5pContainer) {
+                    console.log('Contenido H5P encontrado!');
 
-                if (innerIframe) {
-                    try {
-                        const innerIframeDocument = innerIframe.contentDocument || innerIframe.contentWindow.document;
+                    // Añadir el enlace a Bootstrap 5
+                    const link = h5pDocument.createElement('link');
+                    link.href = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css";
+                    link.rel = "stylesheet";
+                    link.crossOrigin = "anonymous";
+                    h5pDocument.head.appendChild(link);
 
-                        if (innerIframeDocument) {
-                            const h5pContainer = innerIframeDocument.querySelector('.h5p-content');
-                            if (h5pContainer) {
-                                console.log('Contenido H5P encontrado!');
-
-                                // Añadir el enlace a Bootstrap 5
-                                const link = innerIframeDocument.createElement('link');
-                                link.href = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css";
-                                link.rel = "stylesheet";
-                                link.crossOrigin = "anonymous";
-                                innerIframeDocument.head.appendChild(link);
-
-                                // Crear el elemento <style> para agregar las reglas CSS
-                                const style = innerIframeDocument.createElement('style');
-                                style.type = 'text/css';
-                                style.innerHTML = `
-                                    .container-fluid {
-                                        max-height: 520px;
-                                        overflow: hidden;
-                                    }
-                                    .col-12, .col-sm-8, .col-sm-4 {
-                                        max-height: 520px;
-                                        overflow: hidden;
-                                    }
-
-                                    @media (max-width: 768px) {
-                                        .container-fluid {
-                                            max-height: 100vh;
-                                            height: 100vh;
-                                            display: flex;
-                                            flex-direction: column;
-                                            justify-content: space-between;
-                                        }
-                                        .row {
-                                            display: flex;
-                                            flex-direction: column;
-                                            height: 100%;
-                                        }
-                                        .col-sm-8 {
-                                            order: 1;
-                                            height: 60vh; /* El video ocupará el 60% de la altura */
-                                            width: 100%;
-                                            max-height: none; /* Eliminar la restricción de altura */
-                                        }
-                                        .col-sm-4 {
-                                            order: 2;
-                                            height: 40vh; /* El texto ocupará el 40% de la altura */
-                                            width: 100%;
-                                            max-height: none; /* Eliminar la restricción de altura */
-                                            overflow-y: auto;
-                                        }
-                                    }
-                                `;
-                                innerIframeDocument.head.appendChild(style);
-
-                                // Crear contenedor principal con grid de Bootstrap
-                                const container = innerIframeDocument.createElement('div');
-                                container.classList.add('container-fluid');
-                                innerIframeDocument.body.appendChild(container);
-
-                                // Crear la fila (row)
-                                const row = innerIframeDocument.createElement('div');
-                                row.classList.add('row');
-                                container.appendChild(row);
-
-                                // Columna para el contenido H5P (col-8)
-                                const colH5P = innerIframeDocument.createElement('div');
-                                colH5P.classList.add('col-12', 'col-sm-8');
-                                colH5P.style.maxHeight = '520px'; // Limitar la altura del video en pantallas grandes
-                                colH5P.style.overflow = 'hidden'; // Evitar que crezca más
-                                colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
-                                row.appendChild(colH5P);
-
-                                // Columna para el texto (col-4)
-                                const colText = innerIframeDocument.createElement('div');
-                                colText.classList.add('col-12', 'col-sm-4');
-                                colText.id = 'random-text';
-                                colText.style.overflowY = 'auto'; // Agregar scroll vertical
-                                colText.style.maxHeight = '520px'; // Limitar el tamaño del contenedor de subtítulos
-                                row.appendChild(colText);
-
-                                let isUserInteracting = false;
-                                let inactivityTimeout;
-
-                                function resetInactivityTimer() {
-                                    isUserInteracting = true;
-                                    clearTimeout(inactivityTimeout);
-                                    inactivityTimeout = setTimeout(() => {
-                                        isUserInteracting = false;
-                                    }, 3500); // 3.5 segundos de inactividad
-                                }
-
-                                // Escuchar eventos de interacción del usuario (scroll y mousemove)
-                                colText.addEventListener('scroll', resetInactivityTimer);
-                                colText.addEventListener('mousemove', resetInactivityTimer);
-
-                                // Añadir los subtítulos en col-4
-                                const trackElements = innerIframeDocument.querySelectorAll('track');
-
-                                if (trackElements.length > 0) {
-                                    console.log(`Se encontraron ${trackElements.length} etiquetas <track>.`);
-                                    trackElements.forEach((track, i) => {
-                                        const trackSrc = track.getAttribute('src');
-
-                                        if (trackSrc) {
-                                            console.log(`Track encontrado: ${trackSrc}`);
-
-                                            fetch(trackSrc)
-                                                .then(response => response.text())
-                                                .then(vttData => {
-                                                    if (!vttData || vttData.trim() === "") {
-                                                        throw new Error("El archivo VTT está vacío o no tiene contenido válido.");
-                                                    }
-
-                                                    const captions = processVTT(vttData);
-
-                                                    if (!captions || captions.length === 0) {
-                                                        throw new Error("No se encontraron subtítulos válidos en el archivo VTT.");
-                                                    }
-
-                                                    colText.innerHTML = ''; // Limpiar el contenedor de subtítulos
-
-                                                    // Crear un enlace <a> para cada subtítulo
-                                                    captions.forEach((caption, index) => {
-                                                        const captionElement = innerIframeDocument.createElement('a');
-                                                        captionElement.id = `caption-${index}`;
-                                                        captionElement.href = '#';
-                                                        captionElement.textContent = caption.text.trim();
-                                                        captionElement.style.transition = 'color 0.3s, background-color 0.3s';
-                                                        captionElement.style.display = 'block'; // Cada línea en un bloque
-                                                        captionElement.style.cursor = 'pointer'; // Mostrar puntero de clic
-                                                        captionElement.style.fontSize = '20px'; // Tamaño de la fuente grande
-                                                        captionElement.style.textDecoration = 'none'; // Eliminar apariencia de enlace
-                                                        captionElement.style.color = 'black';
-                                                        captionElement.onclick = function () {
-                                                            const videoElement = innerIframeDocument.querySelector('video');
-                                                            videoElement.currentTime = caption.start; // Saltar al tiempo de inicio del frame
-                                                            videoElement.play(); // Reproducir el video
-                                                        };
-                                                        colText.appendChild(captionElement);
-                                                    });
-
-                                                    // Actualizar el scroll automáticamente según el subtítulo resaltado
-                                                    innerIframeDocument.querySelector('video').addEventListener('timeupdate', function () {
-                                                        const currentTime = this.currentTime;
-
-                                                        captions.forEach((caption, index) => {
-                                                            const captionElement = innerIframeDocument.getElementById(`caption-${index}`);
-
-                                                            if (currentTime >= caption.start && currentTime <= caption.end) {
-                                                                captionElement.style.fontWeight = 'bold'; 
-                                                                captionElement.style.backgroundColor = '#a9c1c7';
-                                                                
-                                                                // Si no hay interacción del usuario, centrar el subtítulo resaltado
-                                                                if (!isUserInteracting) {
-                                                                    const scrollTop = colText.scrollTop;
-                                                                    const containerHeight = colText.clientHeight;
-                                                                    const elementOffset = captionElement.offsetTop;
-                                                                    const elementHeight = captionElement.offsetHeight;
-                                                                    
-                                                                    // Calcular la nueva posición del scroll
-                                                                    const scrollTo = elementOffset - (containerHeight / 2) + (elementHeight / 2);
-                                                                    
-                                                                    colText.scrollTo({
-                                                                        top: scrollTo,
-                                                                        behavior: 'smooth'
-                                                                    });
-                                                                }
-
-                                                            } else {
-                                                                captionElement.style.fontWeight = 'normal';
-                                                                captionElement.style.backgroundColor = 'transparent';
-                                                            }
-                                                        });
-                                                    });
-                                                })
-                                                .catch(error => {
-                                                    console.error('Error al procesar el archivo .vtt:', error.message);
-                                                    colText.textContent = 'Error al cargar los subtítulos.';
-                                                });
-                                        } else {
-                                            console.error('La etiqueta <track> no tiene un atributo src.');
-                                            colText.textContent = 'No se encontró ninguna pista de subtítulos.';
-                                        }
-                                    });
-                                } else {
-                                    console.error('No se encontró ninguna etiqueta de track dentro del contenido H5P.');
-                                    colText.textContent = 'No se encontró ninguna pista de subtítulos.';
-                                }
-                            } else {
-                                console.error('No se encontró ningún contenido H5P dentro del segundo iframe.');
-                            }
-                        } else {
-                            console.error('No se puede acceder al contenido del segundo iframe.');
+                    // Crear el elemento <style> para agregar las reglas CSS
+                    const style = h5pDocument.createElement('style');
+                    style.type = 'text/css';
+                    style.innerHTML = `
+                        .container-fluid {
+                            max-height: 520px;
+                            overflow: hidden;
                         }
-                    } catch (error) {
-                        console.error('Error accediendo al contenido del segundo iframe.', error.message);
+
+                        .col-12, .col-sm-8, .col-sm-4 {
+                            max-height: 520px;
+                            overflow: hidden;
+                        }
+
+                        @media (max-width: 768px) {
+                            .container-fluid {
+                                max-height: 100vh;
+                                height: 100vh;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: space-between;
+                            }
+
+                            .row {
+                                display: flex;
+                                flex-direction: column;
+                                height: 100%;
+                            }
+
+                            .col-sm-8 {
+                                order: 1;
+                                height: 60vh;
+                                width: 100%;
+                                max-height: none; /* Eliminar la restricción de altura */
+                            }
+
+                            .col-sm-4 {
+                                order: 2;
+                                height: 40vh;
+                                width: 100%;
+                                max-height: none; /* Eliminar la restricción de altura */
+                                overflow-y: auto;
+                            }
+                        }
+                    `;
+                    h5pDocument.head.appendChild(style);
+
+                    // Crear el contenedor principal con grid de Bootstrap
+                    const container = h5pDocument.createElement('div');
+                    container.classList.add('container-fluid');
+                    h5pDocument.body.appendChild(container);
+
+                    // Crear la fila (row)
+                    const row = h5pDocument.createElement('div');
+                    row.classList.add('row');
+                    container.appendChild(row);
+
+                    // Columna para el contenido H5P (col-8)
+                    const colH5P = h5pDocument.createElement('div');
+                    colH5P.classList.add('col-12', 'col-sm-8');
+                    colH5P.style.maxHeight = '520px'; // Limitar la altura del video en pantallas grandes
+                    colH5P.style.overflow = 'hidden'; // Evitar que crezca más
+                    colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
+                    row.appendChild(colH5P);
+
+                    // Columna para los subtítulos (col-4)
+                    const colText = h5pDocument.createElement('div');
+                    colText.classList.add('col-12', 'col-sm-4');
+                    colText.id = 'captions-container';
+                    colText.style.overflowY = 'auto'; // Scroll vertical
+                    colText.style.maxHeight = '520px'; // Limitar el tamaño del contenedor de subtítulos
+                    row.appendChild(colText);
+
+                    // Añadir subtítulos automáticamente si existen <track>
+                    const trackElements = h5pDocument.querySelectorAll('track');
+
+                    if (trackElements.length > 0) {
+                        console.log(`Se encontraron ${trackElements.length} etiquetas <track>.`);
+                        trackElements.forEach((track, i) => {
+                            const trackSrc = track.getAttribute('src');
+
+                            if (trackSrc) {
+                                console.log(`Track encontrado: ${trackSrc}`);
+
+                                // Fetch del archivo VTT
+                                fetch(trackSrc)
+                                    .then(response => response.text())
+                                    .then(vttData => {
+                                        if (!vttData || vttData.trim() === "") {
+                                            throw new Error("El archivo VTT está vacío o no tiene contenido válido.");
+                                        }
+
+                                        const captions = processVTT(vttData);
+
+                                        if (!captions || captions.length === 0) {
+                                            throw new Error("No se encontraron subtítulos válidos en el archivo VTT.");
+                                        }
+
+                                        colText.innerHTML = ''; // Limpiar el contenedor de subtítulos
+
+                                        // Crear un enlace <a> para cada subtítulo
+                                        captions.forEach((caption, index) => {
+                                            const captionElement = h5pDocument.createElement('a');
+                                            captionElement.id = `caption-${index}`;
+                                            captionElement.href = '#';
+                                            captionElement.textContent = caption.text.trim();
+                                            captionElement.style.display = 'block'; // Cada línea en un bloque
+                                            captionElement.style.cursor = 'pointer'; // Mostrar puntero de clic
+                                            captionElement.onclick = function () {
+                                                const videoElement = h5pDocument.querySelector('video');
+                                                videoElement.currentTime = caption.start; // Saltar al tiempo de inicio del subtítulo
+                                                videoElement.play(); // Reproducir el video
+                                            };
+                                            colText.appendChild(captionElement);
+                                        });
+
+                                        // Sincronizar subtítulos con el tiempo del video
+                                        const videoElement = h5pDocument.querySelector('video');
+                                        if (videoElement) {
+                                            videoElement.addEventListener('timeupdate', function () {
+                                                const currentTime = this.currentTime;
+
+                                                captions.forEach((caption, index) => {
+                                                    const captionElement = h5pDocument.getElementById(`caption-${index}`);
+
+                                                    if (currentTime >= caption.start && currentTime <= caption.end) {
+                                                        captionElement.style.fontWeight = 'bold';
+                                                        captionElement.style.backgroundColor = '#a9c1c7';
+                                                    } else {
+                                                        captionElement.style.fontWeight = 'normal';
+                                                        captionElement.style.backgroundColor = 'transparent';
+                                                    }
+                                                });
+                                            });
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error al procesar el archivo .vtt:', error.message);
+                                        colText.textContent = 'Error al cargar los subtítulos.';
+                                    });
+                            } else {
+                                console.error('La etiqueta <track> no tiene un atributo src.');
+                                colText.textContent = 'No se encontró ninguna pista de subtítulos.';
+                            }
+                        });
+                    } else {
+                        console.error('No se encontró ninguna etiqueta <track> dentro del contenido H5P.');
+                        colText.textContent = 'No se encontró ninguna pista de subtítulos.';
                     }
                 } else {
-                    console.error('No se encontró el segundo iframe dentro del primer iframe.');
+                    console.error('No se encontró ningún contenido H5P dentro del iframe.');
                 }
             } else {
-                console.error('No se puede acceder al contenido del primer iframe.');
+                console.error('No se puede acceder al contenido del iframe H5P.');
             }
         } catch (error) {
-            console.error('Error accediendo al contenido del primer iframe.', error.message);
+            console.error('Error accediendo al contenido del iframe H5P.', error.message);
         }
     } else {
-        console.error('No se encontró el primer iframe.');
+        console.error('No se encontró el iframe H5P.');
     }
 };
 
