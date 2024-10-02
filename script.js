@@ -13,7 +13,6 @@ window.onload = function () {
                     // Aquí validamos si existen <track> en el documento H5P
                     const trackElements = h5pDocument.querySelectorAll('track');
 
-                    // Si no hay subtítulos (track elements), no aplicar cambios y dejar el recurso H5P tal cual
                     if (trackElements.length === 0) {
                         console.log('No se encontró ninguna etiqueta <track> en el contenido H5P.');
                         return; // No se hace nada si no hay subtítulos
@@ -27,61 +26,6 @@ window.onload = function () {
                     link.rel = "stylesheet";
                     link.crossOrigin = "anonymous";
                     h5pDocument.head.appendChild(link);
-
-                    // Crear el elemento <style> para agregar las reglas CSS
-                    const style = h5pDocument.createElement('style');
-                    style.type = 'text/css';
-                    style.innerHTML = `
-                        .container-fluid {
-                            max-height: 520px;
-                            overflow: hidden;
-                        }
-
-                        .col-12, .col-sm-8, .col-sm-4 {
-                            max-height: 520px;
-                            overflow: hidden;
-                        }
-
-                        /* Asegura que el video se ajuste al alto del contenedor */
-                        video {
-                            width: 100%;
-                            height: 100%;
-                            object-fit: contain;
-                            max-height: 100%;
-                        }
-
-                        @media (max-width: 768px) {
-                            .container-fluid {
-                                max-height: 100vh;
-                                height: 100vh;
-                                display: flex;
-                                flex-direction: column;
-                                justify-content: space-between;
-                            }
-
-                            .row {
-                                display: flex;
-                                flex-direction: column;
-                                height: 100%;
-                            }
-
-                            .col-sm-8 {
-                                order: 1;
-                                height: 60vh;
-                                width: 100%;
-                                max-height: none; /* Eliminar la restricción de altura */
-                            }
-
-                            .col-sm-4 {
-                                order: 2;
-                                height: 40vh;
-                                width: 100%;
-                                max-height: none; /* Eliminar la restricción de altura */
-                                overflow-y: auto;
-                            }
-                        }
-                    `;
-                    h5pDocument.head.appendChild(style);
 
                     // Crear el contenedor principal con grid de Bootstrap
                     const container = h5pDocument.createElement('div');
@@ -101,7 +45,7 @@ window.onload = function () {
                     colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
                     row.appendChild(colH5P);
 
-                    // Crear la columna para los subtítulos (col-4) solo si existen pistas de subtítulos
+                    // Crear la columna para los subtítulos (col-4)
                     const colText = h5pDocument.createElement('div');
                     colText.classList.add('col-12', 'col-sm-4');
                     colText.id = 'captions-container';
@@ -110,6 +54,8 @@ window.onload = function () {
                     row.appendChild(colText);
 
                     let validCaptionsFound = false; // Bandera para determinar si hay subtítulos válidos
+                    let isUserInteracting = false;  // Controla si el usuario está interactuando
+                    let inactivityTimeout; // Control del tiempo de inactividad
 
                     trackElements.forEach((track, i) => {
                         const trackSrc = track.getAttribute('src');
@@ -165,6 +111,22 @@ window.onload = function () {
                                                 if (currentTime >= caption.start && currentTime <= caption.end) {
                                                     captionElement.style.fontWeight = 'bold';
                                                     captionElement.style.backgroundColor = '#a9c1c7';
+
+                                                    // Si no hay interacción del usuario, centrar el subtítulo resaltado
+                                                    if (!isUserInteracting) {
+                                                        const scrollTop = colText.scrollTop;
+                                                        const containerHeight = colText.clientHeight;
+                                                        const elementOffset = captionElement.offsetTop;
+                                                        const elementHeight = captionElement.offsetHeight;
+
+                                                        // Calcular la nueva posición del scroll
+                                                        const scrollTo = elementOffset - (containerHeight / 2) + (elementHeight / 2);
+
+                                                        colText.scrollTo({
+                                                            top: scrollTo,
+                                                            behavior: 'smooth'
+                                                        });
+                                                    }
                                                 } else {
                                                     captionElement.style.fontWeight = 'normal';
                                                     captionElement.style.backgroundColor = 'transparent';
@@ -172,6 +134,19 @@ window.onload = function () {
                                             });
                                         });
                                     }
+
+                                    // Control de inactividad del usuario para detener el auto-scroll
+                                    const resetInactivityTimer = () => {
+                                        isUserInteracting = true;
+                                        clearTimeout(inactivityTimeout);
+                                        inactivityTimeout = setTimeout(() => {
+                                            isUserInteracting = false; // Reiniciar el seguimiento automático
+                                        }, 3500); // 3.5 segundos de inactividad
+                                    };
+
+                                    // Escuchar eventos de interacción del usuario
+                                    colText.addEventListener('scroll', resetInactivityTimer);
+                                    colText.addEventListener('mousemove', resetInactivityTimer);
                                 })
                                 .catch(error => {
                                     console.error('Error al procesar el archivo .vtt:', error.message);
