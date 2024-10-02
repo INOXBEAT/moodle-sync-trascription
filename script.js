@@ -10,6 +10,17 @@ window.onload = function () {
                 if (h5pContainer) {
                     console.log('Contenido H5P encontrado!');
 
+                    // Aquí validamos si existen <track> en el documento H5P
+                    const trackElements = h5pDocument.querySelectorAll('track');
+
+                    // Si no hay subtítulos (track elements), no aplicar cambios y dejar el recurso H5P tal cual
+                    if (trackElements.length === 0) {
+                        console.log('No se encontró ninguna etiqueta <track> en el contenido H5P.');
+                        return; // No se hace nada si no hay subtítulos
+                    }
+
+                    console.log(`Se encontraron ${trackElements.length} etiquetas <track>.`);
+
                     // Añadir el enlace a Bootstrap 5
                     const link = h5pDocument.createElement('link');
                     link.href = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css";
@@ -29,6 +40,14 @@ window.onload = function () {
                         .col-12, .col-sm-8, .col-sm-4 {
                             max-height: 520px;
                             overflow: hidden;
+                        }
+
+                        /* Asegura que el video se ajuste al alto del contenedor */
+                        video {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                            max-height: 100%;
                         }
 
                         @media (max-width: 768px) {
@@ -74,7 +93,7 @@ window.onload = function () {
                     row.classList.add('row');
                     container.appendChild(row);
 
-                    // Columna para el contenido H5P (col-8)
+                    // Crear la columna para el video (col-8) y subtítulos (col-4)
                     const colH5P = h5pDocument.createElement('div');
                     colH5P.classList.add('col-12', 'col-sm-8');
                     colH5P.style.maxHeight = '520px'; // Limitar la altura del video en pantallas grandes
@@ -82,7 +101,7 @@ window.onload = function () {
                     colH5P.appendChild(h5pContainer); // Mover el contenido H5P al col-8
                     row.appendChild(colH5P);
 
-                    // Columna para los subtítulos (col-4)
+                    // Crear la columna para los subtítulos (col-4) solo si existen pistas de subtítulos
                     const colText = h5pDocument.createElement('div');
                     colText.classList.add('col-12', 'col-sm-4');
                     colText.id = 'captions-container';
@@ -90,82 +109,77 @@ window.onload = function () {
                     colText.style.maxHeight = '520px'; // Limitar el tamaño del contenedor de subtítulos
                     row.appendChild(colText);
 
-                    // Añadir subtítulos automáticamente si existen <track>
-                    const trackElements = h5pDocument.querySelectorAll('track');
+                    let validCaptionsFound = false; // Bandera para determinar si hay subtítulos válidos
 
-                    if (trackElements.length > 0) {
-                        console.log(`Se encontraron ${trackElements.length} etiquetas <track>.`);
-                        trackElements.forEach((track, i) => {
-                            const trackSrc = track.getAttribute('src');
+                    trackElements.forEach((track, i) => {
+                        const trackSrc = track.getAttribute('src');
 
-                            if (trackSrc) {
-                                console.log(`Track encontrado: ${trackSrc}`);
+                        if (trackSrc) {
+                            console.log(`Track encontrado: ${trackSrc}`);
 
-                                // Fetch del archivo VTT
-                                fetch(trackSrc)
-                                    .then(response => response.text())
-                                    .then(vttData => {
-                                        if (!vttData || vttData.trim() === "") {
-                                            throw new Error("El archivo VTT está vacío o no tiene contenido válido.");
-                                        }
+                            // Fetch del archivo VTT
+                            fetch(trackSrc)
+                                .then(response => response.text())
+                                .then(vttData => {
+                                    if (!vttData || vttData.trim() === "") {
+                                        throw new Error("El archivo VTT está vacío o no tiene contenido válido.");
+                                    }
 
-                                        const captions = processVTT(vttData);
+                                    const captions = processVTT(vttData);
 
-                                        if (!captions || captions.length === 0) {
-                                            throw new Error("No se encontraron subtítulos válidos en el archivo VTT.");
-                                        }
+                                    if (!captions || captions.length === 0) {
+                                        throw new Error("No se encontraron subtítulos válidos en el archivo VTT.");
+                                    }
 
-                                        colText.innerHTML = ''; // Limpiar el contenedor de subtítulos
+                                    validCaptionsFound = true; // Se encontraron subtítulos válidos
+                                    colText.innerHTML = ''; // Limpiar el contenedor de subtítulos
 
-                                        // Crear un enlace <a> para cada subtítulo
-                                        captions.forEach((caption, index) => {
-                                            const captionElement = h5pDocument.createElement('a');
-                                            captionElement.id = `caption-${index}`;
-                                            captionElement.href = '#';
-                                            captionElement.textContent = caption.text.trim();
-                                            captionElement.style.display = 'block'; // Cada línea en un bloque
-                                            captionElement.style.cursor = 'pointer'; // Mostrar puntero de clic
-                                            captionElement.onclick = function () {
-                                                const videoElement = h5pDocument.querySelector('video');
-                                                videoElement.currentTime = caption.start; // Saltar al tiempo de inicio del subtítulo
-                                                videoElement.play(); // Reproducir el video
-                                            };
-                                            colText.appendChild(captionElement);
-                                        });
-
-                                        // Sincronizar subtítulos con el tiempo del video
-                                        const videoElement = h5pDocument.querySelector('video');
-                                        if (videoElement) {
-                                            videoElement.addEventListener('timeupdate', function () {
-                                                const currentTime = this.currentTime;
-
-                                                captions.forEach((caption, index) => {
-                                                    const captionElement = h5pDocument.getElementById(`caption-${index}`);
-
-                                                    if (currentTime >= caption.start && currentTime <= caption.end) {
-                                                        captionElement.style.fontWeight = 'bold';
-                                                        captionElement.style.backgroundColor = '#a9c1c7';
-                                                    } else {
-                                                        captionElement.style.fontWeight = 'normal';
-                                                        captionElement.style.backgroundColor = 'transparent';
-                                                    }
-                                                });
-                                            });
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error al procesar el archivo .vtt:', error.message);
-                                        colText.textContent = 'Error al cargar los subtítulos.';
+                                    // Crear un span para cada subtítulo
+                                    captions.forEach((caption, index) => {
+                                        const captionElement = h5pDocument.createElement('span');
+                                        captionElement.id = `caption-${index}`;
+                                        captionElement.textContent = caption.text.trim();
+                                        captionElement.style.display = 'block'; // Cada línea en un bloque
+                                        captionElement.style.cursor = 'pointer'; // Mostrar puntero de clic
+                                        captionElement.style.fontSize = '16px'; // Tamaño de la fuente
+                                        captionElement.style.color = 'black'; // Color del texto
+                                        captionElement.style.textDecoration = 'none'; // Eliminar subrayado de enlace
+                                        captionElement.style.marginBottom = '10px'; // Espacio entre subtítulos
+                                        captionElement.onclick = function () {
+                                            const videoElement = h5pDocument.querySelector('video');
+                                            videoElement.currentTime = caption.start; // Saltar al tiempo de inicio del subtítulo
+                                            videoElement.play(); // Reproducir el video
+                                        };
+                                        colText.appendChild(captionElement);
                                     });
-                            } else {
-                                console.error('La etiqueta <track> no tiene un atributo src.');
-                                colText.textContent = 'No se encontró ninguna pista de subtítulos.';
-                            }
-                        });
-                    } else {
-                        console.error('No se encontró ninguna etiqueta <track> dentro del contenido H5P.');
-                        colText.textContent = 'No se encontró ninguna pista de subtítulos.';
-                    }
+
+                                    // Sincronizar subtítulos con el tiempo del video
+                                    const videoElement = h5pDocument.querySelector('video');
+                                    if (videoElement) {
+                                        videoElement.addEventListener('timeupdate', function () {
+                                            const currentTime = this.currentTime;
+
+                                            captions.forEach((caption, index) => {
+                                                const captionElement = h5pDocument.getElementById(`caption-${index}`);
+
+                                                if (currentTime >= caption.start && currentTime <= caption.end) {
+                                                    captionElement.style.fontWeight = 'bold';
+                                                    captionElement.style.backgroundColor = '#a9c1c7';
+                                                } else {
+                                                    captionElement.style.fontWeight = 'normal';
+                                                    captionElement.style.backgroundColor = 'transparent';
+                                                }
+                                            });
+                                        });
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error al procesar el archivo .vtt:', error.message);
+                                });
+                        } else {
+                            console.error('La etiqueta <track> no tiene un atributo src.');
+                        }
+                    });
                 } else {
                     console.error('No se encontró ningún contenido H5P dentro del iframe.');
                 }
