@@ -13,7 +13,6 @@ window.onload = function () {
             }
 
             if (h5pDocument && h5pDocument.readyState === 'complete') {
-                console.log('Contenido H5P cargado.');
                 clearInterval(interval);
 
                 const link = h5pDocument.createElement('link');
@@ -35,7 +34,7 @@ window.onload = function () {
                     initializeCoursePresentation(h5pDocument);
                 }
             }
-        }, 500); 
+        }, 500);
     }
 };
 
@@ -106,7 +105,7 @@ function initializeCoursePresentation(h5pDocument) {
                             currentSlide.innerHTML = '';
                             currentSlide.appendChild(container);
 
-                            syncEventHandler = () => syncSubtitlesWithScroll(videoElement, captions, h5pDocument, slideIndex);
+                            syncEventHandler = () => syncSubtitlesWithScroll(videoElement, captions, h5pDocument, `slide-${slideIndex}`);
                             videoElement.addEventListener('timeupdate', syncEventHandler);
                             currentVideo = videoElement;
                         })
@@ -232,7 +231,7 @@ function createGridLayout(document, slide, videoElement, captions, slideIndex) {
 
     captions.forEach((caption, index) => {
         const captionElement = document.createElement('span');
-        captionElement.id = `caption-${slideIndex}-${index}`;
+        captionElement.id = `caption-slide-${slideIndex}-${index}`;
         captionElement.textContent = caption.text.trim();
         captionElement.style.display = 'block';
         captionElement.style.cursor = 'pointer';
@@ -255,6 +254,8 @@ function syncSubtitlesWithScroll(videoElement, captions, h5pDocument, type) {
 
     videoElement.addEventListener('timeupdate', () => {
         const currentTime = videoElement.currentTime;
+        if (!colText) return;
+
         captions.forEach((caption, index) => {
             const captionElement = h5pDocument.getElementById(`caption-${type}-${index}`);
             if (currentTime >= caption.start && currentTime <= caption.end) {
