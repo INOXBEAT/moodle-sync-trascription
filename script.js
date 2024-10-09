@@ -105,7 +105,7 @@ function initializeCoursePresentation(h5pDocument) {
                             currentSlide.innerHTML = '';
                             currentSlide.appendChild(container);
 
-                            syncEventHandler = () => syncSubtitlesWithScroll(videoElement, captions, h5pDocument, `slide-${slideIndex}`);
+                            syncEventHandler = () => syncSubtitlesWithScroll(videoElement, captions, h5pDocument, 'slide', slideIndex);
                             videoElement.addEventListener('timeupdate', syncEventHandler);
                             currentVideo = videoElement;
                         })
@@ -247,39 +247,53 @@ function createGridLayout(document, slide, videoElement, captions, slideIndex) {
     return container;
 }
 
-function syncSubtitlesWithScroll(videoElement, captions, h5pDocument, type) {
-    const colText = h5pDocument.getElementById(`captions-container-${type}`);
+function syncSubtitlesWithScroll(videoElement, captions, h5pDocument, type, slideIndex = null) {
+    const colTextId = slideIndex !== null ? `captions-container-slide-${slideIndex}` : `captions-container-${type}`;
+    const colText = h5pDocument.getElementById(colTextId);
+    console.log(`[${type}] Contenedor de subtítulos encontrado:`, colText ? "Sí" : "No");
+
     let isUserInteracting = false;
     let inactivityTimeout;
 
-    videoElement.addEventListener('timeupdate', () => {
+    const handleTimeUpdate = () => {
         const currentTime = videoElement.currentTime;
         if (!colText) return;
 
         captions.forEach((caption, index) => {
-            const captionElement = h5pDocument.getElementById(`caption-${type}-${index}`);
+            const captionId = slideIndex !== null ? `caption-slide-${slideIndex}-${index}` : `caption-${type}-${index}`;
+            const captionElement = h5pDocument.getElementById(captionId);
+            if (!captionElement) return;
+
             if (currentTime >= caption.start && currentTime <= caption.end) {
                 captionElement.style.fontWeight = 'bold';
                 captionElement.style.backgroundColor = '#a9c1c7';
+
                 if (!isUserInteracting) {
                     const scrollTo = captionElement.offsetTop - (colText.clientHeight / 2) + (captionElement.offsetHeight / 2);
                     colText.scrollTo({ top: scrollTo, behavior: 'smooth' });
+                    console.log(`[${type}] Subtítulo centrado en índice ${index}`);
                 }
             } else {
                 captionElement.style.fontWeight = 'normal';
                 captionElement.style.backgroundColor = 'transparent';
             }
         });
-    });
+    };
+
+    videoElement.addEventListener('timeupdate', handleTimeUpdate);
 
     const resetInactivityTimer = () => {
+        if (inactivityTimeout) clearTimeout(inactivityTimeout);
         isUserInteracting = true;
-        clearTimeout(inactivityTimeout);
+
         inactivityTimeout = setTimeout(() => {
             isUserInteracting = false;
+            console.log(`[${type}] Usuario inactivo. Centrando subtítulo nuevamente.`);
         }, 3500);
     };
 
-    colText.addEventListener('scroll', resetInactivityTimer);
-    colText.addEventListener('mousemove', resetInactivityTimer);
+    if (colText) {
+        colText.addEventListener('scroll', resetInactivityTimer);
+        colText.addEventListener('mousemove', resetInactivityTimer);
+    }
 }
